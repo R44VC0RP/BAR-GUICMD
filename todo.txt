@@ -1,0 +1,25 @@
+hello ryan whenever you work on this again 
+
+we have finished the core commands where we can set start, end, renderer, output location and select and add render files
+
+
+TO DO:
+
+set limit of 5 blender files for queue
+
+setup 
+GET CONFIG SETTINGS
+RUN COMMAND TO RENDER FILE
+PYTHON TERMINAL PROGRESS BAR (get code from external renderer.py)
+
+maybe add a hyperclickable link to open output folders
+
+OHHHH
+for the output folder based off the name of the blender file assign the render follder as such: BLEND_RANDOMINT_RENDER so we dont mess up stuff
+
+
+then just do like bug testing and stress testing ig
+idk im tired
+i just wanna d i e
+
+code fuckin works tho so thats cool just dont fuck it up ryan ;)
