@@ -7,6 +7,7 @@ import os
 from tkinter import filedialog as fd
 import tkinter as tk 
 import subprocess
+import time
 
 root = tk.Tk() 
 root.withdraw()
@@ -98,6 +99,9 @@ def blenderRenderQueue():
         FINALRenderer = settingsRead("renderer")
         FINALOutputRootFolder = settingsRead("outputfolder")
         for specificfile in blenderfiles:
+            blenderfilenameraw = specificfile.split("/")
+            outputfolder = FINALOutputRootFolder + "/" + blenderfilenameraw[-1] + "/"
+            print(outputfolder)
             idandfile = specificfile.split("|||")
             idandfile[0] + ". " + idandfile[1]
             blenderfilename = idandfile[1]
@@ -105,7 +109,8 @@ def blenderRenderQueue():
             framelist = frameRange.split("-")
             frameStart = framelist[0]
             frameEnd = framelist[1]
-            proc = subprocess.Popen([FINALRenderer,'-b',blenderfilename,'-s',frameStart,'-e',frameEnd, '-o', outputFolder.replace("/", "\\") + "\\render_#####", '-a'],stdout=subprocess.PIPE)
+            t0 = time.time()
+            proc = subprocess.Popen([FINALRenderer,'-b',blenderfilename,'-s',frameStart,'-e',frameEnd, '-o', outputfolder.replace("/", "\\") + "\\render_#####", '-a'],stdout=subprocess.PIPE)
             imagesSaved = 0
             print("RENDERING FILE")
             for line in iter(proc.stdout.readline,''):
@@ -113,9 +118,9 @@ def blenderRenderQueue():
                 callback = checkLine(line.rstrip())
                 if callback == True:
                     imagesSaved += 1
-                    progressPercent = int(imagesSaved)/int(end)
+                    progressPercent = int(imagesSaved)/int(frameEnd)
                     print("PE|" + str(progressPercent))
-                    comms = "{}/{} images saved. ".format(imagesSaved, str(int(end)-(int(start)-1)))
+                    comms = "{}/{} images saved. ".format(imagesSaved, str(int(frameEnd)-(int(frameStart)-1)))
                     print("SM|" + "Rendering: {}".format(comms))
                 #print('Saved:' in line.rstrip())
                 if line.rstrip() == b'Blender quit':
