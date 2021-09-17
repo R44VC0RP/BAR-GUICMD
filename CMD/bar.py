@@ -8,6 +8,8 @@ from tkinter import filedialog as fd
 import tkinter as tk 
 import subprocess
 import time
+from pathlib import Path
+
 
 root = tk.Tk() 
 root.withdraw()
@@ -92,42 +94,59 @@ def checkLine(temp):
     else:
         return False
 def blenderRenderQueue():
+    print("Checking Options")
+    # PRE RENDER CHECKS
+    if len(blenderfiles) < 1:
+        print("You do not have a blender file added to render.")
+        return
+    for tryfile in blenderfiles:
+        idandfile = tryfile.split("|||")
+        idandfile[0] + ". " + idandfile[1]
+        blenderfilename = idandfile[1]
+        framerangecheck = settingsRead("frames" + idandfile[0])
+        framerangeindividual = framerangecheck.split("-")
+        startINT = framerangeindividual[0]
+        endINT = framerangeindividual[1]
+        if startINT > endINT:
+            print("For file {} your frame start ({}) is greater than your frame end ({}).".format(idandfile[0], startINT, endINT))
+            return
+    
     print("Starting Render with these settings:")
     settingsReadAll()
-    confirmCheck = input("Start Render? (y/N)")
+    confirmCheck = input("Start Render? (y/N): ")
     if confirmCheck.upper() == "Y":
         FINALRenderer = settingsRead("renderer")
         FINALOutputRootFolder = settingsRead("outputfolder")
         for specificfile in blenderfiles:
+            # Split the blender file path extention into just the name of the project
             blenderfilenameraw = specificfile.split("/")
             outputfolder = FINALOutputRootFolder + "/" + blenderfilenameraw[-1] + "/"
-            print(outputfolder)
+            # Splitting the blenderID and blender project path
             idandfile = specificfile.split("|||")
             idandfile[0] + ". " + idandfile[1]
             blenderfilename = idandfile[1]
             framerange = settingsRead("frames" + idandfile[0])
-            framelist = frameRange.split("-")
+            framelist = framerange.split("-")
             frameStart = framelist[0]
             frameEnd = framelist[1]
             t0 = time.time()
-            proc = subprocess.Popen([FINALRenderer,'-b',blenderfilename,'-s',frameStart,'-e',frameEnd, '-o', outputfolder.replace("/", "\\") + "\\render_#####", '-a'],stdout=subprocess.PIPE)
+            print("Starting render for "+blenderfilenameraw[-1]+"")
+            #print([FINALRenderer,'-b',blenderfilename,'-s',frameStart,'-e',frameEnd, '-o', outputfolder + "\\render_#####", '-a'])
+            proc = subprocess.Popen([FINALRenderer,'-b',blenderfilename,'-s',frameStart,'-e',frameEnd, '-o', outputfolder + "\\render_#####", '-a'],stdout=subprocess.PIPE)
             imagesSaved = 0
-            print("RENDERING FILE")
             for line in iter(proc.stdout.readline,''):
-                #print(line.rstrip())
                 callback = checkLine(line.rstrip())
                 if callback == True:
                     imagesSaved += 1
                     progressPercent = int(imagesSaved)/int(frameEnd)
-                    print("PE|" + str(progressPercent))
                     comms = "{}/{} images saved. ".format(imagesSaved, str(int(frameEnd)-(int(frameStart)-1)))
-                    print("SM|" + "Rendering: {}".format(comms))
+                    print("Rendering "+blenderfilenameraw[-1]+": {}".format(comms))
                 #print('Saved:' in line.rstrip())
                 if line.rstrip() == b'Blender quit':
                     t1 = time.time()
                     totalrendertime = "Total Render Time: " + str(t1-t0)
-                    print("SM|" + "Render Finished - " + display_time(t1-t0))
-                    return
+                    print("Render Finished for "+blenderfilenameraw[-1]+" - " + display_time(t1-t0))
+        return
 
          
 
@@ -141,12 +160,11 @@ def help():
     ADD [blender file location]
     SET-RENDERER [renderer location]
     SET-OUTPUT [output location]
-    SET-START [frame start]
-    SET-END [frame end]
+    SET-FRAMES (Blender File Number) STARTFRAME-ENDFRAME
     OPTIONS (shows current configuration options)
     RENDER (renders file or files with current configuration)
-    RM [0 (no display), 1 (very little display), 2 complete verbose mode]
     HELP (shows this help menu)
+    GIF (seprate process to )
 ========================================================================
     """)
 
@@ -190,6 +208,7 @@ BBBBBBBBBBBBBBBBBAAAAAAA                   AAAAAAARRRRRRRR     RRRRRRR
 """)
 print("===============================================================")
 help()
+log("-------------------------PROGRAM RESTARTED-------------------------")
 print("===============================================================")
 print("BAR is able to Queue up to 5 blender files at once.")
 print("\nEnter Command:")
@@ -209,35 +228,26 @@ while barrun == True:
                 print("Please select a valid blender program.")
         except:
             print("Please enter a value.")
-    elif "SET-OUTPUT" in command:
-        try:
-            outputfolder = command.split(" ")[1]
-            isFile = os.path.isdir(outputfolder)
-            if isFile == True:
-                settingsWrite("outputfolder", command.split(" ")[1])
-            else:
-                print("Please select a valid output location.")
-        except:
-            print("Please enter a value.")
-    elif "SET-FRAME" in command:
+    elif command == "SET-OUTPUT":
+
+        folder_selected = fd.askdirectory(initialdir="/", title="Select Base Output Folder")
+        if folder_selected != "":
+            settingsWrite("outputfolder", folder_selected)
+            print("Output Folder " + folder_selected)
+        else:
+            print("No Output Folder Selected")
+    elif "SET-FRAMES" in command:
         try:
             # Data will be submitted like: SET-FRAMES 2 1-520 
             blenderfileidselect = command.split(" ")[1]
-            if blenderfileidselect > len(blenderfiles) + 1:
+            if int(blenderfileidselect) >= len(blenderfiles) + 1:
                 print("The blender file you are trying to set frames for does not exist.")
             else:
                 frameRange = command.split(" ")[2]
                 settingsWrite("frames" + str(blenderfileidselect), frameRange)
         except:
             print("Please enter a frame start and end in this format: SET-FRAMES (Blender File Number) STARTFRAME-ENDFRAME")
-    #elif "SET-END" in command:
-    #    try: 
-    #        test = int(command.split(" ")[1])
-    #        settingsWrite("endframe", command.split(" ")[1])
-    #    except:
-    #        print("Please enter a number for a frame end.")
     elif "OPTIONS" in command:
-        
         settingsReadAll()
     elif "RENDER" in command:
         blenderRenderQueue()
